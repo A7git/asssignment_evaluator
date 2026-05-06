@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard — NIST University{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Student Dashboard</h1>
+        <p class="subtitle">Welcome back, {{ current_user.full_name }} ({{ current_user.student_id }})</p>
+    </div>
+</div>
+
+<div class="stats-grid mb-3">
+    <div class="stat-card fade-in">
+        <span class="stat-icon">📚</span>
+        <div class="stat-value">{{ assignments|length }}</div>
+        <div class="stat-label">Active Assignments</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-1">
+        <span class="stat-icon">📤</span>
+        <div class="stat-value">{{ submissions|length }}</div>
+        <div class="stat-label">Total Submissions</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-2">
+        {% set graded = submissions|selectattr('is_released', 'equalto', True)|list %}
+        <span class="stat-icon">✅</span>
+        <div class="stat-value">{{ graded|length }}</div>
+        <div class="stat-label">Grades Released</div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3>📖 Available Assignments</h3>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Type</th>
+                        <th>Due Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td><strong>{{ a.title }}</strong></td>
+                        <td><span class="badge badge-{{ 'coding' if a.is_coding else 'descriptive' }}">{{ a.assignment_type|capitalize }}</span></td>
+                        <td class="text-muted">{{ a.due_date.strftime('%b %d') if a.due_date else 'No date' }}</td>
+                        <td>
+                            <a href="{{ url_for('submissions.upload', assignment_id=a.id) }}" class="btn btn-sm btn-primary">Upload</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card fade-in fade-in-delay-1">
+        <div class="card-header">
+            <h3>🕒 Recent Submissions</h3>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Assignment</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in submissions %}
+                    <tr>
+                        <td class="text-muted">{{ s.submitted_at.strftime('%b %d') }}</td>
+                        <td>{{ s.assignment.title }}</td>
+                        <td><span class="badge badge-{{ s.status_color }}">{{ s.status|capitalize }}</span></td>
+                        <td>
+                            {% if s.is_released and s.evaluation %}
+                                <a href="{{ url_for('student.report', submission_id=s.id) }}" class="btn btn-sm btn-secondary">
+                                    {{ s.evaluation.final_score }}%
+                                </a>
+                            {% elif s.status == 'evaluated' %}
+                                <span class="text-muted" title="Waiting for instructor to release grades">Hidden</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not submissions %}
+                    <tr><td colspan="4" class="text-center text-muted">No submissions found.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

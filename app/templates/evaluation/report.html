@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Evaluation Report — {{ submission.student_name }}{% endblock %}
+
+{% block content %}
+{% set eval = submission.evaluation %}
+
+<div class="page-header">
+    <div>
+        <h1>Evaluation Report</h1>
+        <p class="subtitle">{{ submission.student_name }} ({{ submission.student_id }}) · {{ submission.assignment.title }}</p>
+    </div>
+    <div class="d-flex gap-1">
+        <a href="{{ url_for('evaluation.export_html', submission_id=submission.id) }}" class="btn btn-secondary">📄 Export HTML</a>
+        <form method="POST" action="{{ url_for('evaluation.evaluate', submission_id=submission.id) }}">
+            <button type="submit" class="btn btn-primary">🔄 Re-evaluate</button>
+        </form>
+    </div>
+</div>
+
+{% if not eval %}
+<div class="card">
+    <div class="empty-state">
+        <span class="empty-icon">⏳</span>
+        <p>This submission has not been evaluated yet.</p>
+        <form method="POST" action="{{ url_for('evaluation.evaluate', submission_id=submission.id) }}">
+            <button type="submit" class="btn btn-primary mt-2">Evaluate Now</button>
+        </form>
+    </div>
+</div>
+{% else %}
+
+<!-- Top Score Cards -->
+<div class="stats-grid">
+    <div class="stat-card fade-in">
+        <span class="stat-icon">🏆</span>
+        <div class="stat-value" style="-webkit-text-fill-color:{{ eval.grade_color }};color:{{ eval.grade_color }}">{{ eval.final_score }}</div>
+        <div class="stat-label">Final Score</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-1">
+        <span class="stat-icon">📊</span>
+        <div class="stat-value">{{ eval.grade_letter }}</div>
+        <div class="stat-label">Grade</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-2">
+        <span class="stat-icon">🔍</span>
+        <div class="stat-value" style="-webkit-text-fill-color:{{ '#00d4aa' if eval.plagiarism_score >= 80 else '#ffa726' if eval.plagiarism_score >= 60 else '#ff5252' }}">{{ eval.plagiarism_score|int }}%</div>
+        <div class="stat-label">Originality</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-3">
+        <span class="stat-icon">✅</span>
+        <div class="stat-value">{{ eval.correctness_score }}</div>
+        <div class="stat-label">Correctness</div>
+    </div>
+</div>
+
+<!-- Score Breakdown -->
+<div class="grid-2 mb-3">
+    <div class="card fade-in">
+        <div class="card-header"><h3>📊 Score Breakdown</h3></div>
+        <div class="gauge-container mb-3">
+            <div class="gauge">
+                <svg viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="60"/>
+                    <circle class="gauge-fill" cx="70" cy="70" r="60"
+                        stroke="{{ eval.grade_color }}"
+                        stroke-dasharray="377"
+                        stroke-dashoffset="{{ 377 - (377 * eval.final_score / 100) }}"/>
+                </svg>
+                <div class="gauge-text">
+                    <span class="gauge-value" style="color:{{ eval.grade_color }}">{{ eval.final_score }}</span>
+                    <span class="gauge-label">OVERALL</span>
+                </div>
+            </div>
+        </div>
+
+        {% set scores = [
+            ('Correctness', eval.correctness_score),
+            ('Code Quality / Style', eval.style_score),
+            ('Similarity to Reference', eval.similarity_score),
+            ('Clarity / Readability', eval.clarity_score),
+            ('Completeness', eval.completeness_score),
+            ('Originality', eval.plagiarism_score)
+        ] %}
+        {% for label, score in scores %}
+        <div class="score-bar-container">
+            <div class="score-bar-header">
+                <span class="score-label">{{ label }}</span>
+                <span class="score-value" style="color:{{ '#00d4aa' if score >= 70 else '#ffa726' if score >= 50 else '#ff5252' }}">{{ score|int }}</span>
+            </div>
+            <div class="score-bar">
+                <div class="score-bar-fill {{ 'success' if score >= 70 else 'warning' if score >= 50 else 'danger' }}"
+                     style="width:{{ score }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Feedback -->
+    <div class="card fade-in fade-in-delay-1">
+        <div class="card-header"><h3>💬 Feedback</h3></div>
+        <p class="card-text mb-3" style="font-weight:600;font-size:15px;">
+            {{ eval.feedback.get('summary', 'Evaluation complete.') }}
+        </p>
+
+        {% if eval.strengths %}
+        <div class="feedback-block feedback-strengths">
+            <h4>✅ Strengths</h4>
+            <ul>{% for s in eval.strengths.split('\n') %}{% if s %}<li>{{ s }}</li>{% endif %}{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if eval.weaknesses %}
+        <div class="feedback-block feedback-weaknesses">
+            <h4>⚠️ Areas for Improvement</h4>
+            <ul>{% for w in eval.weaknesses.split('\n') %}{% if w %}<li>{{ w }}</li>{% endif %}{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if eval.suggestions %}
+        <div class="feedback-block feedback-suggestions">
+            <h4>💡 Suggestions</h4>
+            <ul>{% for s in eval.suggestions.split('\n') %}{% if s %}<li>{{ s }}</li>{% endif %}{% endfor %}</ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Test Results (for coding) -->
+{% if eval.test_results %}
+<div class="card mb-3 fade-in">
+    <div class="card-header"><h3>🧪 Test Case Results</h3></div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>#</th><th>Input</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+            <tbody>
+            {% for t in eval.test_results %}
+            <tr>
+                <td>{{ t.test_num }}</td>
+                <td><code>{{ t.input[:50] }}</code></td>
+                <td><code>{{ t.expected[:50] }}</code></td>
+                <td><code>{{ t.actual[:50] }}</code></td>
+                <td>
+                    {% if t.passed %}<span class="badge badge-success">PASS</span>
+                    {% else %}<span class="badge badge-danger">FAIL</span>{% endif %}
+                    {% if t.error %}<br><small class="text-danger">{{ t.error[:80] }}</small>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Plagiarism Details -->
+<div class="card mb-3 fade-in">
+    <div class="card-header"><h3>🔍 Plagiarism Analysis</h3></div>
+    {% set plag = eval.plagiarism_details %}
+    <div class="grid-2 mb-2">
+        <div>
+            <div class="score-bar-container">
+                <div class="score-bar-header">
+                    <span class="score-label">Originality Score</span>
+                    <span class="score-value" style="color:{{ '#00d4aa' if plag.originality_score >= 80 else '#ffa726' if plag.originality_score >= 60 else '#ff5252' }}">
+                        {{ plag.originality_score|int }}%
+                    </span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-bar-fill {{ 'success' if plag.originality_score >= 80 else 'warning' if plag.originality_score >= 60 else 'danger' }}"
+                         style="width:{{ plag.originality_score }}%"></div>
+                </div>
+            </div>
+            {% if plag.flagged %}
+            <div class="flash-message flash-warning mt-2">⚠️ This submission has been flagged for review.</div>
+            {% endif %}
+        </div>
+        <div>
+            <p class="card-text" style="font-size:12px;font-style:italic;">{{ plag.disclaimer }}</p>
+        </div>
+    </div>
+
+    {% if plag.matches %}
+    <h4 style="font-size:14px;margin-top:16px;margin-bottom:12px;">Peer Matches:</h4>
+    {% for m in plag.matches %}
+    <div style="background:rgba(255,82,82,0.05);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <strong>{{ m.peer_name }} ({{ m.peer_id }})</strong>
+            <span class="badge badge-{{ 'danger' if m.similarity > 50 else 'warning' }}">{{ m.similarity|int }}% similar</span>
+        </div>
+        {% if m.matching_sections %}
+        {% for sec in m.matching_sections %}
+        <div class="plag-section">{{ sec[:200] }}</div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="text-muted">No significant matches found with peer submissions.</p>
+    {% endif %}
+</div>
+
+{% endif %}
+{% endblock %}

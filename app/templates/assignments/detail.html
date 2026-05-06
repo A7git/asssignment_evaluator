@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ assignment.title }} — NIST University{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ assignment.title }}</h1>
+        <p class="subtitle">
+            <span class="badge badge-{{ 'coding' if assignment.is_coding else 'descriptive' }}">{{ assignment.assignment_type }}</span>
+            {% if assignment.language %}<span class="badge badge-coding">{{ assignment.language }}</span>{% endif %}
+            · Created {{ assignment.created_at.strftime('%b %d, %Y') }}
+        </p>
+    </div>
+    <div class="d-flex gap-1">
+        <a href="{{ url_for('submissions.upload', assignment_id=assignment.id) }}" class="btn btn-primary" target="_blank">📎 Student Upload Link</a>
+        <form method="POST" action="{{ url_for('assignments.delete', id=assignment.id) }}" onsubmit="return confirm('Delete this assignment?')">
+            <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3>📄 Description</h3></div>
+        <p class="card-text">{{ assignment.description or 'No description provided.' }}</p>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>📊 Rubric</h3></div>
+        {% if assignment.rubrics %}
+        {% for r in assignment.rubrics %}
+        <div class="score-bar-container">
+            <div class="score-bar-header">
+                <span class="score-label">{{ r.criterion }}</span>
+                <span class="score-value">{{ r.weight }}%</span>
+            </div>
+            <div class="score-bar"><div class="score-bar-fill" style="width:{{ r.weight }}%"></div></div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted">No rubric defined.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Submissions Table -->
+<div class="card">
+    <div class="card-header">
+        <h3>📥 Submissions ({{ submissions|length }})</h3>
+        <div class="d-flex gap-1">
+            {% if submissions %}
+            <form method="POST" action="{{ url_for('assignments.evaluate_all', id=assignment.id) }}" style="display:inline">
+                <button type="submit" class="btn btn-success btn-sm">⚡ Batch Evaluate</button>
+            </form>
+            <form method="POST" action="{{ url_for('assignments.release_grades', id=assignment.id) }}" style="display:inline">
+                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Release all evaluated grades to students?')">📢 Release Grades</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% if submissions %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Student</th><th>ID</th><th>File</th><th>Submitted</th><th>Status</th><th>Score</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                <tr>
+                    <td><strong>{{ sub.student_name }}</strong></td>
+                    <td>{{ sub.student_id }}</td>
+                    <td>{{ sub.file_name }}</td>
+                    <td>{{ sub.submitted_at.strftime('%b %d, %H:%M') }}</td>
+                    <td><span class="badge badge-{{ sub.status_color }}">{{ sub.status }}</span></td>
+                    <td>
+                        {% if sub.evaluation %}
+                        <strong style="color:{{ sub.evaluation.grade_color }}">{{ sub.evaluation.final_score }} ({{ sub.evaluation.grade_letter }})</strong>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="d-flex gap-1">
+                        {% if sub.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('evaluation.evaluate', submission_id=sub.id) }}" style="display:inline">
+                            <button type="submit" class="btn btn-success btn-sm">⚡ Evaluate</button>
+                        </form>
+                        {% elif sub.status == 'evaluated' %}
+                        <a href="{{ url_for('evaluation.report', submission_id=sub.id) }}" class="btn btn-secondary btn-sm">📊 Report</a>
+                        <a href="{{ url_for('evaluation.export_html', submission_id=sub.id) }}" class="btn btn-secondary btn-sm">📄 Export</a>
+                        {% endif %}
+                        <a href="{{ url_for('submissions.detail', id=sub.id) }}" class="btn btn-secondary btn-sm">👁 View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">📭</span>
+        <p>No submissions yet. Share the upload link with students.</p>
+        <a href="{{ url_for('submissions.upload', assignment_id=assignment.id) }}" class="btn btn-primary mt-2" target="_blank">Copy Upload Link</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NIST University Evaluator{% endblock %}</title>
+    <meta name="description" content="Automated Assignment Evaluation System for University Campus">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="bg-grid"></div>
+
+    {% if current_user.is_authenticated %}
+    <button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon" style="background: white;">
+                    <img src="{{ url_for('static', filename='img/nist_logo.png') }}" alt="NIST" style="width:100%;height:100%;object-fit:contain;padding:2px;border-radius:10px;">
+                </div>
+                <div>
+                    <h2>NIST University</h2>
+                    <small>Assignment Evaluator</small>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    {% if current_user.role == 'faculty' %}
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <span class="nav-icon">📊</span> Dashboard
+                    </a>
+                    <a href="{{ url_for('assignments.list_assignments') }}" class="nav-link {% if request.endpoint and 'assignments' in request.endpoint %}active{% endif %}">
+                        <span class="nav-icon">📝</span> Assignments
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('student.dashboard') }}" class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}">
+                        <span class="nav-icon">📊</span> My Dashboard
+                    </a>
+                    {% endif %}
+                </div>
+                {% if current_user.role == 'faculty' %}
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Actions</div>
+                    <a href="{{ url_for('assignments.create') }}" class="nav-link">
+                        <span class="nav-icon">➕</span> New Assignment
+                    </a>
+                </div>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">{{ current_user.full_name[0] }}</div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary)">{{ current_user.full_name }}</div>
+                        <div>{{ current_user.email }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="nav-link mt-2" style="color:var(--danger)">
+                    <span class="nav-icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+        {% block public_content %}{% endblock %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

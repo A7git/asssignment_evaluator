@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — NIST University{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="subtitle">Overview of all assignments and evaluations</p>
+    </div>
+    <a href="{{ url_for('assignments.create') }}" class="btn btn-primary">➕ New Assignment</a>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card fade-in">
+        <span class="stat-icon">📝</span>
+        <div class="stat-value">{{ assignments|length }}</div>
+        <div class="stat-label">Total Assignments</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-1">
+        <span class="stat-icon">📥</span>
+        <div class="stat-value">{{ total_submissions }}</div>
+        <div class="stat-label">Total Submissions</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-2">
+        <span class="stat-icon">✅</span>
+        <div class="stat-value">{{ evaluated_count }}</div>
+        <div class="stat-label">Evaluated</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-3">
+        <span class="stat-icon">⏳</span>
+        <div class="stat-value">{{ pending_count }}</div>
+        <div class="stat-label">Pending Review</div>
+    </div>
+</div>
+
+<!-- Average Scores -->
+<div class="grid-2 mb-3">
+    <div class="card fade-in">
+        <div class="card-header"><h3>Average Score</h3></div>
+        <div class="gauge-container">
+            <div class="gauge">
+                <svg viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="60"/>
+                    <circle class="gauge-fill" cx="70" cy="70" r="60"
+                        stroke="{{ '#00d4aa' if avg_score >= 70 else '#ffa726' if avg_score >= 50 else '#ff5252' }}"
+                        stroke-dasharray="377"
+                        stroke-dashoffset="{{ 377 - (377 * avg_score / 100) }}"/>
+                </svg>
+                <div class="gauge-text">
+                    <span class="gauge-value" style="color:{{ '#00d4aa' if avg_score >= 70 else '#ffa726' if avg_score >= 50 else '#ff5252' }}">{{ avg_score }}</span>
+                    <span class="gauge-label">AVG SCORE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card fade-in fade-in-delay-1">
+        <div class="card-header"><h3>Originality Rate</h3></div>
+        <div class="gauge-container">
+            <div class="gauge">
+                <svg viewBox="0 0 140 140">
+                    <circle class="gauge-bg" cx="70" cy="70" r="60"/>
+                    <circle class="gauge-fill" cx="70" cy="70" r="60"
+                        stroke="{{ '#00d4aa' if avg_plagiarism >= 80 else '#ffa726' if avg_plagiarism >= 60 else '#ff5252' }}"
+                        stroke-dasharray="377"
+                        stroke-dashoffset="{{ 377 - (377 * avg_plagiarism / 100) }}"/>
+                </svg>
+                <div class="gauge-text">
+                    <span class="gauge-value" style="color:{{ '#00d4aa' if avg_plagiarism >= 80 else '#ffa726' if avg_plagiarism >= 60 else '#ff5252' }}">{{ avg_plagiarism }}</span>
+                    <span class="gauge-label">ORIGINALITY</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="chart-grid mb-3">
+    <div class="card chart-card fade-in">
+        <div class="card-header"><h3>Score Distribution</h3></div>
+        <canvas id="scoreChart"></canvas>
+    </div>
+    <div class="card chart-card fade-in fade-in-delay-1">
+        <div class="card-header"><h3>Plagiarism Distribution</h3></div>
+        <canvas id="plagChart"></canvas>
+    </div>
+</div>
+
+<!-- Recent Submissions -->
+<div class="card fade-in">
+    <div class="card-header">
+        <h3>Recent Submissions</h3>
+    </div>
+    {% if recent_submissions %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Student</th><th>Assignment</th><th>File</th><th>Status</th><th>Score</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for sub in recent_submissions %}
+                <tr>
+                    <td><strong>{{ sub.student_name }}</strong><br><span class="text-muted">{{ sub.student_id }}</span></td>
+                    <td>{{ sub.assignment.title }}</td>
+                    <td>{{ sub.file_name }}</td>
+                    <td><span class="badge badge-{{ sub.status_color }}">{{ sub.status }}</span></td>
+                    <td>{% if sub.evaluation %}<strong>{{ sub.evaluation.final_score }}</strong>{% else %}—{% endif %}</td>
+                    <td class="d-flex gap-1">
+                        {% if sub.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('evaluation.evaluate', submission_id=sub.id) }}" style="display:inline">
+                            <button type="submit" class="btn btn-primary btn-sm">Evaluate</button>
+                        </form>
+                        {% endif %}
+                        {% if sub.evaluation %}
+                        <a href="{{ url_for('evaluation.report', submission_id=sub.id) }}" class="btn btn-secondary btn-sm">Report</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">📭</span>
+        <p>No submissions yet. Create an assignment and share the upload link with students.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

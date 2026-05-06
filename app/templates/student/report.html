@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Result — {{ submission.assignment.title }}{% endblock %}
+
+{% block content %}
+{% set eval = submission.evaluation %}
+
+<div class="page-header">
+    <div>
+        <h1>Evaluation Report</h1>
+        <p class="subtitle">{{ submission.assignment.title }} · Submitted on {{ submission.submitted_at.strftime('%b %d, %Y') }}</p>
+    </div>
+    <div>
+        <a href="{{ url_for('student.dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Top Score Cards -->
+<div class="stats-grid">
+    <div class="stat-card fade-in">
+        <span class="stat-icon">🏆</span>
+        <div class="stat-value" style="color:{{ eval.grade_color }}">{{ eval.final_score|int }}</div>
+        <div class="stat-label">Final Score</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-1">
+        <span class="stat-icon">📊</span>
+        <div class="stat-value">{{ eval.grade_letter }}</div>
+        <div class="stat-label">Grade</div>
+    </div>
+    <div class="stat-card fade-in fade-in-delay-2">
+        <span class="stat-icon">🔍</span>
+        <div class="stat-value" style="color:{{ '#00d4aa' if eval.plagiarism_score >= 80 else '#ffa726' }}">{{ eval.plagiarism_score|int }}%</div>
+        <div class="stat-label">Originality</div>
+    </div>
+</div>
+
+<div class="grid-2 mb-3">
+    <div class="card fade-in">
+        <div class="card-header"><h3>📊 Score Breakdown</h3></div>
+        {% set scores = [
+            ('Correctness', eval.correctness_score),
+            ('Code Quality / Style', eval.style_score),
+            ('Similarity to Reference', eval.similarity_score),
+            ('Clarity / Readability', eval.clarity_score),
+            ('Completeness', eval.completeness_score),
+            ('Originality', eval.plagiarism_score)
+        ] %}
+        {% for label, score in scores %}
+        <div class="score-bar-container">
+            <div class="score-bar-header">
+                <span class="score-label">{{ label }}</span>
+                <span class="score-value" style="color:{{ '#00d4aa' if score >= 70 else '#ffa726' if score >= 50 else '#ff5252' }}">{{ score|int }}</span>
+            </div>
+            <div class="score-bar">
+                <div class="score-bar-fill {{ 'success' if score >= 70 else 'warning' if score >= 50 else 'danger' }}"
+                     style="width:{{ score }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card fade-in fade-in-delay-1">
+        <div class="card-header"><h3>💬 Detailed Feedback</h3></div>
+        <p class="card-text mb-3" style="font-weight:600;">
+            {{ eval.feedback.get('summary', 'Evaluation complete.') }}
+        </p>
+
+        {% if eval.strengths %}
+        <div class="feedback-block feedback-strengths">
+            <h4>✅ Strengths</h4>
+            <ul>{% for s in eval.strengths.split('\n') %}{% if s %}<li>{{ s }}</li>{% endif %}{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if eval.suggestions %}
+        <div class="feedback-block feedback-suggestions">
+            <h4>💡 Suggestions for Improvement</h4>
+            <ul>{% for s in eval.suggestions.split('\n') %}{% if s %}<li>{{ s }}</li>{% endif %}{% endfor %}</ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if eval.test_results and submission.assignment.is_coding %}
+<div class="card mb-3 fade-in">
+    <div class="card-header"><h3>🧪 Test Results</h3></div>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Test #</th><th>Result</th><th>Notes</th></tr></thead>
+            <tbody>
+            {% for t in eval.test_results %}
+            <tr>
+                <td>{{ t.test_num }}</td>
+                <td>
+                    {% if t.passed %}<span class="badge badge-success">PASS</span>
+                    {% else %}<span class="badge badge-danger">FAIL</span>{% endif %}
+                </td>
+                <td>
+                    {% if t.error %}<small class="text-danger">{{ t.error[:100] }}</small>
+                    {% elif not t.passed %}Does not match expected output.{% else %}Correct output.{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="alert alert-info fade-in">
+    <strong>Note:</strong> Peer-to-peer plagiarism details are restricted to instructor view. Your originality score is based on internal comparisons.
+</div>
+{% endblock %}

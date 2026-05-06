@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Assignments — NIST University{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Assignments</h1>
+        <p class="subtitle">Manage your assignments and rubrics</p>
+    </div>
+    <a href="{{ url_for('assignments.create') }}" class="btn btn-primary">➕ New Assignment</a>
+</div>
+
+{% if assignments %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:20px;">
+    {% for a in assignments %}
+    <div class="card fade-in" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:16px;">
+            <div>
+                <span class="badge badge-{{ 'coding' if a.is_coding else 'descriptive' }}" style="margin-bottom:8px;">
+                    {{ a.assignment_type }}{% if a.language %} · {{ a.language }}{% endif %}
+                </span>
+                <h3 class="card-title">{{ a.title }}</h3>
+            </div>
+        </div>
+        <p class="card-text" style="margin-bottom:16px;">{{ a.description[:120] }}{% if a.description|length > 120 %}...{% endif %}</p>
+        <div style="display:flex; gap:20px; margin-bottom:16px; font-size:13px; color:var(--text-muted);">
+            <span>📥 {{ a.submission_count }} submissions</span>
+            <span>✅ {{ a.evaluated_count }} evaluated</span>
+        </div>
+        <div class="d-flex gap-1">
+            <a href="{{ url_for('assignments.detail', id=a.id) }}" class="btn btn-secondary btn-sm">View Details</a>
+            <a href="{{ url_for('submissions.upload', assignment_id=a.id) }}" class="btn btn-primary btn-sm" target="_blank">📎 Upload Link</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>No assignments yet. Create your first assignment to get started.</p>
+        <a href="{{ url_for('assignments.create') }}" class="btn btn-primary mt-2">Create Assignment</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

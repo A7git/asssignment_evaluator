@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Submission — {{ submission.student_name }} — NIST University{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Submission Detail</h1>
+        <p class="subtitle">{{ submission.student_name }} ({{ submission.student_id }}) · {{ submission.assignment.title }}</p>
+    </div>
+    <div class="d-flex gap-1">
+        {% if submission.status == 'pending' %}
+        <form method="POST" action="{{ url_for('evaluation.evaluate', submission_id=submission.id) }}">
+            <button type="submit" class="btn btn-success">⚡ Evaluate Now</button>
+        </form>
+        {% elif submission.evaluation %}
+        <a href="{{ url_for('evaluation.report', submission_id=submission.id) }}" class="btn btn-primary">📊 View Report</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid-2 mb-3">
+    <div class="card">
+        <div class="card-header"><h3>📋 Metadata</h3></div>
+        <table style="width:100%">
+            <tr><td class="text-muted" style="padding:8px 0;width:140px;">Student Name</td><td><strong>{{ submission.student_name }}</strong></td></tr>
+            <tr><td class="text-muted" style="padding:8px 0;">Student ID</td><td>{{ submission.student_id }}</td></tr>
+            <tr><td class="text-muted" style="padding:8px 0;">File</td><td>{{ submission.file_name }}</td></tr>
+            <tr><td class="text-muted" style="padding:8px 0;">Type</td><td><span class="badge badge-{{ 'coding' if submission.is_code else 'descriptive' }}">.{{ submission.file_type }}</span></td></tr>
+            <tr><td class="text-muted" style="padding:8px 0;">Submitted</td><td>{{ submission.submitted_at.strftime('%b %d, %Y at %H:%M') }}</td></tr>
+            <tr><td class="text-muted" style="padding:8px 0;">Status</td><td><span class="badge badge-{{ submission.status_color }}">{{ submission.status }}</span></td></tr>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>📄 Content Preview</h3></div>
+        {% if submission.extracted_text %}
+        <div class="code-preview">{{ submission.extracted_text[:2000] }}{% if submission.extracted_text|length > 2000 %}...{% endif %}</div>
+        {% else %}
+        <p class="text-muted">No text extracted.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
