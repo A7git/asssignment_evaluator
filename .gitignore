@@ -8,3 +8,5 @@ uploads/
 venv/
 .venv/
 migrations/
+
+.vercel

@@ -10,10 +10,19 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Ensure instance and upload directory exist
-    instance_path = os.path.join(app.root_path, '..', 'instance')
-    upload_path = os.path.join(app.root_path, '..', app.config['UPLOAD_FOLDER'])
+    if os.environ.get('VERCEL'):
+        instance_path = '/tmp/instance'
+        upload_path = '/tmp/uploads'
+    else:
+        instance_path = os.path.join(app.root_path, '..', 'instance')
+        upload_path = os.path.join(app.root_path, '..', app.config['UPLOAD_FOLDER'])
+    
     os.makedirs(instance_path, exist_ok=True)
     os.makedirs(upload_path, exist_ok=True)
+    
+    # Update app config to use these paths
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(instance_path, 'evaluator.db')}"
+    app.config['UPLOAD_FOLDER'] = upload_path
 
     # Configure logging
     import logging
